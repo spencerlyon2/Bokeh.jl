@@ -1,9 +1,13 @@
+VERSION >= v"0.4.0-dev+6641" && __precompile__()
+
 module Bokeh
+
 include("bokehjs.jl")
 include("glyphs.jl")
 include("display.jl")
 include("generate.jl")
 include("plot.jl")
+
 import Base: display
 
 # if DEBUG == true, displays indented JSON, uses unminified js and saves the raw
