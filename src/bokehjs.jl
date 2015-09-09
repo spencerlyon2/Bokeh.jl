@@ -16,19 +16,16 @@ type Omit
 end
 const omit = Omit()
 
+# TODO: replace with Nullable
 # in case we want to restrict value types in future:
 typealias BkAny Any # Union(Dict, Array, String, Number, Bool, Nothing, UUID)
 typealias NullDict Union(Nothing, Dict{String, BkAny})
 typealias OmitDict Union(Omit, Dict{Symbol, BkAny})
-
 typealias NullString Union(Nothing, String)
 typealias OmitString Union(Omit, String)
-
 typealias NullSymbol Union(Nothing, Symbol)
 typealias OmitSymbol Union(Omit, Symbol)
-
 typealias NullFloat Union(Float64, Nothing)
-
 typealias NullInt Union(Int, Nothing)
 
 uuid4 = Base.Random.uuid4
@@ -38,6 +35,7 @@ abstract PlotObject
 
 abstract BkRange <: PlotObject
 
+# TODO: replace with nullable
 typealias NullBkRange Union(Nothing, BkRange)
 
 abstract Renderer <: PlotObject
@@ -82,8 +80,8 @@ function ColumnDataSource(data::Dict{Symbol, Vector})
     ColumnDataSource(uuid4(),
                      collect(keys(data)),
                      BkAny[],
-                     Dict{Symbol, BkAny}(), 
-                     Dict{Symbol, BkAny}(), 
+                     Dict{Symbol, BkAny}(),
+                     Dict{Symbol, BkAny}(),
                      data)
 end
 
@@ -93,7 +91,8 @@ type DataRange1d <: BkRange
 end
 
 function DataRange1d(cdss::Vector{ColumnDataSource}, columns::Vector{String})
-    source(cds) = @Compat.compat Dict{String, BkAny}("columns" => columns, "source" => TypeID(cds))
+    source(cds) = Dict{String,BkAny}("columns" => columns,
+                                     "source" => TypeID(cds))
     sources = map(source, cdss)
     DataRange1d(uuid4(), sources)
 end
@@ -103,8 +102,11 @@ type TickFormatter <: PlotObject
     _type_name::Symbol
     format::OmitDict
     function TickFormatter(name::Symbol)
-        @assert name in (:BasicTickFormatter, :DatetimeTickFormatter, :LogTickFormatter)
-        # format only seems to occur for DatetimeTickFormatter and even then is empty
+        @assert name in (:BasicTickFormatter, :DatetimeTickFormatter,
+                         :LogTickFormatter)
+
+        # format only seems to occur for DatetimeTickFormatter and even then is
+        # empty
         format = name == :DatetimeTickFormatter ? Dict{Symbol, BkAny}() : omit
         new(uuid4(), name, format)
     end
@@ -128,12 +130,12 @@ type LinearAxis <: Axis
 end
 
 function LinearAxis(dimension::Int, tf::TickFormatter, t::Ticker, plot::Plot)
-    LinearAxis(uuid4(), 
-               dimension, 
+    LinearAxis(uuid4(),
+               dimension,
                "auto",
                "min",
-               TypeID(tf), 
-               TypeID(t), 
+               TypeID(tf),
+               TypeID(t),
                TypeID(plot))
 end
 
@@ -161,8 +163,8 @@ end
 
 function Legend(plot::Plot, legends::Vector{Tuple}, orientation::NullSymbol)
     orientation = orientation == nothing ? omit : orientation
-    @assert orientation in (omit, :top_left, :top_center, :top_right, 
-                            :right_center, :bottom_right, :bottom_center, 
+    @assert orientation in (omit, :top_left, :top_center, :top_right,
+                            :right_center, :bottom_right, :bottom_center,
                             :bottom_left, :left_center, :center)
     Legend(uuid4(),
            TypeID(plot),
@@ -196,15 +198,16 @@ end
 
 typealias NullGlyph Union(Nothing, Glyph)
 
-function GlyphRenderer(coldata::ColumnDataSource, nonsel_g::NullGlyph, sel_g::NullGlyph, glyph::Glyph)
-    GlyphRenderer(uuid4(), 
+function GlyphRenderer(coldata::ColumnDataSource, nonsel_g::NullGlyph,
+                       sel_g::NullGlyph, glyph::Glyph)
+    GlyphRenderer(uuid4(),
                   TypeID(coldata),
                   TypeID(nonsel_g),
                   TypeID(sel_g),
                   TypeID(glyph),
                   nothing,
                   nothing
-    )
+                 )
 end
 
 type Metatool <: PlotObject
@@ -223,6 +226,7 @@ function Metatool(typename::String, plot::Plot)
     Metatool(typename, plot, omit)
 end
 
+# TODO: these are duplicated as HEIGHT and WIDTH in Bokeh.jl
 _DEFAULT_HEIGHT = 600
 _DEFAULT_WIDTH = 600
 function Plot()
@@ -234,17 +238,16 @@ function Plot()
          TypeID(),
          TypeID(),
          Nothing[],
-
          Nothing[],
          Nothing[],
          Nothing[],
          Nothing[],
-         
-         Nothing[])
+         Nothing[]
+        )
 end
 
 function Plot(plot::Plot,
-              xrange::BkRange, 
+              xrange::BkRange,
               yrange::BkRange,
               renderers::Array{PlotObject,1},
               axes,#::Dict{Symbol, Array{PlotObject,1}},
@@ -266,7 +269,8 @@ function Plot(plot::Plot,
          map(TypeID, axes[:below]),
          map(TypeID, axes[:left]),
          map(TypeID, axes[:right]),
-         data_sources)
+         data_sources
+        )
 end
 
 type PlotContext <: PlotObject
@@ -274,37 +278,32 @@ type PlotContext <: PlotObject
     children::Vector{TypeID}
 end
 
-function PlotContext(plot::Plot)
-    PlotContext(uuid4(),[TypeID(plot)])
-end
-end
+PlotContext(plot::Plot) = PlotContext(uuid4(),[TypeID(plot)])
+
+end  # module
+
+# extract useful types from Bokehjs module
 typealias RealVect Bokehjs.RealVect
 typealias RealMat Bokehjs.RealMat
 typealias RealArray Bokehjs.RealArray
 typealias BkAny Bokehjs.BkAny
 typealias omit Bokehjs.omit
-
 typealias Glyph Bokehjs.Glyph
 typealias NullString Bokehjs.NullString
 typealias NullSymbol Bokehjs.NullSymbol
 typealias NullFloat Bokehjs.NullFloat
 typealias NullInt Bokehjs.NullInt
 
-function JSON._print(io::IO, state::JSON.State, uuid::Bokehjs.UUID)
+JSON._print(io::IO, state::JSON.State, uuid::Bokehjs.UUID) =
     JSON._print(io, state, string(uuid))
-end
 
 function JSON._print(io::IO, state::JSON.State, tid::Bokehjs.TypeID)
     tid.plotob == nothing && (return JSON._print(io, state, nothing))
-    @compat attrs = fieldnames(tid.plotob)
+    attrs = fieldnames(tid.plotob)
     obtype = in(:_type_name, attrs) ? tid.plotob._type_name : typeof(tid.plotob)
-    d = @compat Dict{String, BkAny}(
-        "type" => obtype,
-        "id" => tid.plotob.uuid
-    )
+    d = Dict{String,BkAny}("type" => obtype, "id" => tid.plotob.uuid)
     JSON._print(io, state, d)
 end
 
-function JSON._print{T<:Bokehjs.PlotObject}(io::IO, state::JSON.State, d::Type{T})
+JSON._print{T<:Bokehjs.PlotObject}(io::IO, state::JSON.State, d::Type{T}) =
     Base.print(io, "\"", d.name.name, "\"")
-end
