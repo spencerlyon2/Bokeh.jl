@@ -8,8 +8,6 @@ include("display.jl")
 include("generate.jl")
 include("plot.jl")
 
-import Base: display
-
 # if DEBUG == true, displays indented JSON, uses unminified js and saves the raw
 # JSON to "bokeh_models.json" if true
 DEBUG = false
